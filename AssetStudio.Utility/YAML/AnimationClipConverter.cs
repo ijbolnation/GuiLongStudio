@@ -75,6 +75,10 @@ namespace AssetStudio
             {
                 ProcessConstant(m_Clip, bindings, tos, lastFrame);
             }
+            if (game.Type.IsGuiLongChao())
+            {
+                PorcessQuantizedClip(m_Clip, bindings, tos);
+            }
             CreateCurves();
         }
 
@@ -258,7 +262,44 @@ namespace AssetStudio
                 }
             }
         }
+        private void PorcessQuantizedClip(Clip clip, AnimationClipBindingConstant bindings, Dictionary<uint, string> tos)
+        {
+            var streamCount = clip.m_StreamedClip.curveCount;
+            var denseCount = clip.m_DenseClip.m_CurveCount;
+            float[] slopeValues = new float[4]; // no slopes - 0 values
 
+            var m_QuantizedClip = clip.m_QuantizedClip;
+            m_QuantizedClip.Process(out var values, out var times);
+            
+            int frameCount = times.Length;
+            for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
+            {
+                float time = times[frameIndex];
+                int frameOffset = frameIndex * (int)m_QuantizedClip.m_CurveCount;
+                for (int curveIndex = 0; curveIndex < m_QuantizedClip.m_CurveCount;)
+                {
+                    var index = (int)(streamCount + denseCount + curveIndex);
+                    GenericBinding binding = bindings.FindBinding(index);
+                    string path = GetCurvePath(tos, binding.path);
+                    int framePosition = frameOffset + curveIndex;
+                    if (binding.typeID == ClassIDType.Transform)
+                    {
+                        AddTransformCurve(time, binding.attribute, values, slopeValues, slopeValues, framePosition, path);
+                        curveIndex += binding.GetDimension();
+                    }
+                    else if ((BindingCustomType)binding.customType == BindingCustomType.None)
+                    {
+                        AddDefaultCurve(binding, path, time, values[framePosition]);
+                        curveIndex++;
+                    }
+                    else
+                    {
+                        AddCustomCurve(bindings, binding, path, time, values[framePosition]);
+                        curveIndex++;
+                    }
+                }
+            }
+        }
         private void AddCustomCurve(AnimationClipBindingConstant bindings, GenericBinding binding, string path, float time, float value)
         {
             switch ((BindingCustomType)binding.customType)

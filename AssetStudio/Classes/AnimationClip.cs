@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace AssetStudio
 {
@@ -1302,7 +1304,7 @@ namespace AssetStudio
         }
     }
 
-    public class QuantizedClip : ACLClip
+    public class QuantizedClip
     {
         public int m_FrameCount;
         public uint m_CurveCount;
@@ -1316,10 +1318,12 @@ namespace AssetStudio
         public uint m_FrameSize;
         public uint m_DynamicOffset;
         public byte[] m_Data;
-        
-        public QuantizedClip() { }
 
-        public override void Read(ObjectReader reader)
+        public Span<int> Indices => MemoryMarshal.Cast<byte, int>(m_Data.AsSpan((int)m_IndicesOffset));
+        public Span<CurveType> Types => MemoryMarshal.Cast<byte, CurveType>(m_Data.AsSpan((int)m_TypeOffset));
+        public Span<float> Statics => MemoryMarshal.Cast<byte, float>(m_Data.AsSpan((int)m_StaticOffset));
+        
+        public QuantizedClip(ObjectReader reader)
         {
             m_FrameCount = reader.ReadInt32();
             m_CurveCount = reader.ReadUInt32();
@@ -1333,6 +1337,73 @@ namespace AssetStudio
             m_FrameSize = reader.ReadUInt32();
             m_DynamicOffset = reader.ReadUInt32();
             m_Data = reader.ReadUInt8Array();
+        }
+
+        public void Process(out float[] values, out float[] times)
+        {
+            values = new float[m_FrameCount * m_CurveCount];
+            times  = new float[m_FrameCount];
+
+            float dt = 1.0f / m_SampleRate;
+            for (int frameIndex = 0; frameIndex < m_FrameCount; frameIndex++)
+            {
+                times[frameIndex] = m_BeginTime + frameIndex * dt;
+            }
+
+            for (int frameIndex = 0; frameIndex < m_FrameCount; frameIndex++)
+            {
+                float time = times[frameIndex];
+
+                int frame = frameIndex * (int)m_CurveCount;
+
+                for (int curveIndex = 0; curveIndex < m_CurveCount; curveIndex++)
+                {
+                    values[frame + curveIndex] = Sample(curveIndex, time);
+                }
+            }
+        }
+
+        private float Sample(int index, float time)
+        {
+            int curveIndex = Indices[index];
+            CurveType curveType = Types[index];
+
+            switch(curveType)
+            {
+                case CurveType.Static:
+                    return Statics[curveIndex];
+                case CurveType.Dynamic:
+                    float sampleTime = (time - m_BeginTime) * m_SampleRate;
+                    int sampleIndex = (int)Math.Floor(sampleTime);
+        
+                    int keyFrame0 = Math.Clamp(sampleIndex, 0, m_FrameCount - 1);
+                    int keyFrame1 = Math.Clamp(keyFrame0 + 1, 0, m_FrameCount - 1);
+        
+                    float interpolationAlpha = sampleTime - (float)Math.Floor(sampleTime);
+        
+                    float value0 = SampleCurve(curveIndex, keyFrame0);
+                    float value1 = SampleCurve(curveIndex, keyFrame1);
+        
+                    return value0 + (value1 - value0) * interpolationAlpha;
+                default:
+                    throw new Exception($"Unsupported type {curveType}");
+            }
+        }
+
+        private float SampleCurve(int index, int key)
+        {
+            var frame = m_Data.AsSpan((int)(m_DynamicOffset + m_FrameSize * index));
+            var min = BinaryPrimitives.ReadSingleLittleEndian(frame);
+            var extent = BinaryPrimitives.ReadSingleLittleEndian(frame[4..]);
+            var ranges = MemoryMarshal.Cast<byte, ushort>(frame[8..]);
+
+            return min + ranges[key] * extent;
+        }
+
+        public enum CurveType : byte
+        {
+            Static,
+            Dynamic
         }
     }
     
@@ -1382,6 +1453,7 @@ namespace AssetStudio
         public StreamedClip m_StreamedClip;
         public DenseClip m_DenseClip;
         public ConstantClip m_ConstantClip;
+        public QuantizedClip m_QuantizedClip;
         public ValueArrayConstant m_Binding;
         public Clip() { }
 
@@ -1418,8 +1490,7 @@ namespace AssetStudio
             }
             if (reader.Game.Type.IsGuiLongChao())
             {
-                var m_QuantizedClip = new QuantizedClip();
-                m_QuantizedClip.Read(reader);
+                m_QuantizedClip = new QuantizedClip(reader);
                 var m_PredictClip = new PredictClip();
                 m_PredictClip.Read(reader);
             }

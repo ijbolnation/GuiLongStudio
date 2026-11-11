@@ -978,6 +978,24 @@ namespace AssetStudio
                             time2 = animationClip.m_MuscleClip.m_StopTime;
                         }
                     }
+                    if (options.game.Type.IsGuiLongChao())
+                    {
+                        var denseCount = m_Clip.m_DenseClip.m_CurveCount;
+
+                        var m_QuantizedClip = m_Clip.m_QuantizedClip;
+                        m_QuantizedClip.Process(out var values, out var times);
+                        for (int frameIndex = 0; frameIndex < times.Length; frameIndex++)
+                        {
+                            var time = times[frameIndex];
+                            var frameOffset = frameIndex * m_QuantizedClip.m_CurveCount;
+                            for (int curveIndex = 0; curveIndex < m_QuantizedClip.m_CurveCount;)
+                            {
+                                var index = streamCount + denseCount + curveIndex;
+                                ReadCurveData(iAnim, m_ClipBindingConstant, (int)index, time, values, (int)frameOffset, ref curveIndex);
+                            }
+
+                        }
+                    }
                 }
             }
         }
