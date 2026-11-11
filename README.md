@@ -6,26 +6,7 @@
 > * Try other **active forks** of AssetStudio.
 > * Follow the development of the new rewrite: [**TinyStudio**](https://github.com/AXiX-official/TinyStudio).
 
-# Attention
-
-This is a fork of [Razmoth](https://github.com/Razmoth)‘s [Stduio](https://github.com/RazTools/Studio),
-Check out original project for more information.
-
-This fork is mainly for self-use so so there will be tons of low quality code, 
-wont-fix bugs and all sorts of issues. 
-
-**All in all, I don't recommend this fork nor do I guarantee any maintenance.**
-
-<details>
-<summary>original readme perhaps</summary>
-# Studio
-Check out the [original AssetStudio project](https://github.com/Perfare/AssetStudio) for more information.
-
-Note: Requires Internet connection to fetch asset_index jsons.
-_____________________________________________________________________________________________________________________________
-How to use:
-
-Check the tutorial [here](https://gist.github.com/Modder4869/0f5371f8879607eb95b8e63badca227e) (Thanks to Modder4869 for the tutorial)
+fork of AXiX studio adding Razmoth's quantizedclip patch
 
 _____________________________________________________________________________________________________________________________
 CLI Version:
