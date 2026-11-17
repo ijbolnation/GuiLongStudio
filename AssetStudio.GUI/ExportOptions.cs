@@ -49,6 +49,10 @@ namespace AssetStudio.GUI
             key.Value = Properties.Settings.Default.key;
             minimalAssetMap.Checked = Properties.Settings.Default.minimalAssetMap;
             types = JsonConvert.DeserializeObject<Dictionary<ClassIDType, (bool, bool)>>(Properties.Settings.Default.types);
+            if (!types.ContainsKey(ClassIDType.Cubemap))
+            {
+                types[ClassIDType.Cubemap] = types.TryGetValue(ClassIDType.Texture2D, out var texture2DFlags) ? texture2DFlags : (true, true);
+            }
             uvs = JsonConvert.DeserializeObject<Dictionary<string, (bool, int)>>(Properties.Settings.Default.uvs);
 
             texTypeComboBox.SelectedIndex = 0;

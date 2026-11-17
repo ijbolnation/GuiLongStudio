@@ -290,6 +290,11 @@ namespace AssetStudio.CLI
                 case GameObject m_GameObject:
                     exportable = ClassIDType.GameObject.CanExport() && m_GameObject.HasModel();
                     break;
+                case Cubemap m_Cubemap:
+                    if (!string.IsNullOrEmpty(m_Cubemap.m_StreamData?.path))
+                        assetItem.FullSize = asset.byteSize + m_Cubemap.m_StreamData.size;
+                    exportable = ClassIDType.Cubemap.CanExport();
+                    break;
                 case Texture2D m_Texture2D:
                     if (!string.IsNullOrEmpty(m_Texture2D.m_StreamData?.path))
                         assetItem.FullSize = asset.byteSize + m_Texture2D.m_StreamData.size;

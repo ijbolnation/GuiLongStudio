@@ -677,6 +677,7 @@ namespace AssetStudio
                             ClassIDType.Sprite when ClassIDType.Sprite.CanParse() => new Sprite(objectReader),
                             ClassIDType.SpriteAtlas when ClassIDType.SpriteAtlas.CanParse() => new SpriteAtlas(objectReader),
                             ClassIDType.TextAsset when ClassIDType.TextAsset.CanParse() => new TextAsset(objectReader),
+                            ClassIDType.Cubemap when ClassIDType.Cubemap.CanParse() => new Cubemap(objectReader),
                             ClassIDType.Texture2D when ClassIDType.Texture2D.CanParse() => new Texture2D(objectReader),
                             ClassIDType.Transform when ClassIDType.Transform.CanParse() => new Transform(objectReader),
                             ClassIDType.VideoClip when ClassIDType.VideoClip.CanParse() => new VideoClip(objectReader),

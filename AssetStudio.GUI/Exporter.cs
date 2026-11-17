@@ -39,6 +39,33 @@ namespace AssetStudio.GUI
             }
         }
 
+        public static bool ExportCubemap(AssetItem item, string exportPath)
+        {
+            var m_Cubemap = (Texture2D)item.Asset;
+            if (Properties.Settings.Default.convertTexture)
+            {
+                if (CubemapConverter.IsSupportedFormat(m_Cubemap.m_TextureFormat))
+                {
+                    if (!TryExportFile(exportPath, item, ".exr", out var exrPath))
+                        return false;
+                    if (CubemapConverter.TryExportEquirectExr(m_Cubemap, exrPath, out var error))
+                        return true;
+                    Logger.Warning($"Cubemap \"{item.Text}\" could not be converted to EXR ({error}); exporting raw data instead");
+                    try { File.Delete(exrPath); } catch { }
+                }
+                else
+                {
+                    Logger.Warning($"Cubemap \"{item.Text}\" uses {m_Cubemap.m_TextureFormat}, which can't be converted to EXR yet; exporting raw data instead");
+                }
+            }
+            if (!TryExportFile(exportPath, item, ".tex", out var rawPath))
+                return false;
+            var data = m_Cubemap.image_data.GetData();
+            File.WriteAllBytes(rawPath, data);
+            File.WriteAllText(Path.ChangeExtension(rawPath, ".json"), CubemapConverter.GetInfoJson(m_Cubemap, data.Length));
+            return true;
+        }
+
         public static bool ExportAudioClip(AssetItem item, string exportPath)
         {
             var m_AudioClip = (AudioClip)item.Asset;
@@ -525,6 +552,8 @@ namespace AssetStudio.GUI
                     return ExportGameObject(item, exportPath);
                 case ClassIDType.Texture2D:
                     return ExportTexture2D(item, exportPath);
+                case ClassIDType.Cubemap:
+                    return ExportCubemap(item, exportPath);
                 case ClassIDType.AudioClip:
                     return ExportAudioClip(item, exportPath);
                 case ClassIDType.Shader:

@@ -66,13 +66,16 @@
         }
     }
 
-    public sealed class Texture2D : Texture
+    public class Texture2D : Texture
     {
         public int m_Width;
         public int m_Height;
         public TextureFormat m_TextureFormat;
         public bool m_MipMap;
         public int m_MipCount;
+        public int m_ImageCount;
+        public int m_TextureDimension;
+        public int m_ColorSpace = -1;
         public GLTextureSettings m_TextureSettings;
         public ResourceReader image_data;
         public StreamingInfo m_StreamData;
@@ -150,8 +153,8 @@
             {
                 var m_StreamingMipmapsPriority = reader.ReadInt32();
             }
-            var m_ImageCount = reader.ReadInt32();
-            var m_TextureDimension = reader.ReadInt32();
+            m_ImageCount = reader.ReadInt32();
+            m_TextureDimension = reader.ReadInt32();
             m_TextureSettings = new GLTextureSettings(reader);
             if (version.Major >= 3) //3.0 and up
             {
@@ -159,7 +162,7 @@
             }
             if (version >= "3.5.0") //3.5.0 and up
             {
-                var m_ColorSpace = reader.ReadInt32();
+                m_ColorSpace = reader.ReadInt32();
             }
             if (version >= "2020.2"
                 || (reader.IsTuanJie && version.Major == 2022 && int.Parse(version.Extra.Substring(1)) >= 13)) //2020.2 and up

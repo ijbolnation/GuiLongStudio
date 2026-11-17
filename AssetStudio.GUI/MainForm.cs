@@ -487,6 +487,7 @@ namespace AssetStudio.GUI
                 switch (lastSelectedItem.Type)
                 {
                     case ClassIDType.Texture2D:
+                    case ClassIDType.Cubemap:
                     case ClassIDType.Sprite:
                         {
                             if (enablePreview.Checked && imageTexture != null)
@@ -902,7 +903,8 @@ namespace AssetStudio.GUI
 
         private void PreviewTexture2D(AssetItem assetItem, Texture2D m_Texture2D)
         {
-            var image = m_Texture2D.ConvertToImage(true);
+            // Texture2D data is stored bottom-up, cubemap faces are stored top-down
+            var image = m_Texture2D.ConvertToImage(!(m_Texture2D is Cubemap));
             if (image != null)
             {
                 var bitmap = new DirectBitmap(image.ConvertToBytes(), m_Texture2D.m_Width, m_Texture2D.m_Height);

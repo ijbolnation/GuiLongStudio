@@ -258,6 +258,11 @@ namespace AssetStudio.GUI
                     var exportable = false;
                     switch (asset)
                     {
+                        case Cubemap m_Cubemap:
+                            if (!string.IsNullOrEmpty(m_Cubemap.m_StreamData?.path))
+                                assetItem.FullSize = asset.byteSize + m_Cubemap.m_StreamData.size;
+                            exportable = ClassIDType.Cubemap.CanExport();
+                            break;
                         case Texture2D m_Texture2D:
                             if (!string.IsNullOrEmpty(m_Texture2D.m_StreamData?.path))
                                 assetItem.FullSize = asset.byteSize + m_Texture2D.m_StreamData.size;

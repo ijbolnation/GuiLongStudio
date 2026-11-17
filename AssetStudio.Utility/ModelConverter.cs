@@ -711,6 +711,7 @@ namespace AssetStudio
                     {
                         continue;
                     }
+                    var isCubemap = m_Texture2D is Cubemap;
 
                     var texture = new ImportedMaterialTexture();
                     iMat.Textures.Add(texture);
@@ -729,9 +730,9 @@ namespace AssetStudio
                         dest = 1;
                     if (dest == 1 || (dest == 3 && options.game.Type == GameType.GirlsFrontline))
                         isNormal = true;
-                    texture.Dest = dest;
+                    texture.Dest = isCubemap ? -1 : dest; //cubemaps are only written out next to the model, never linked to the FBX material
 
-                    var ext = $".{options.imageFormat.ToString().ToLower()}";
+                    var ext = isCubemap ? ".exr" : $".{options.imageFormat.ToString().ToLower()}";
                     if (textureNameDictionary.TryGetValue(m_Texture2D, out var textureName))
                     {
                         texture.Name = textureName;
@@ -757,7 +758,17 @@ namespace AssetStudio
 
                     texture.Offset = texEnv.Value.m_Offset;
                     texture.Scale = texEnv.Value.m_Scale;
-                    ConvertTexture2D(m_Texture2D, texture.Name, isNormal);
+                    if (isCubemap)
+                    {
+                        if (!ConvertCubemap(m_Texture2D, texture.Name))
+                        {
+                            iMat.Textures.Remove(texture);
+                        }
+                    }
+                    else
+                    {
+                        ConvertTexture2D(m_Texture2D, texture.Name, isNormal);
+                    }
                 }
 
                 MaterialList.Add(iMat);
@@ -786,6 +797,31 @@ namespace AssetStudio
                     TextureList.Add(iTex);
                 }
             }
+        }
+
+        private bool ConvertCubemap(Texture2D m_Cubemap, string name)
+        {
+            if (ImportedHelpers.FindTexture(name, TextureList) != null)
+            {
+                return true;
+            }
+
+            if (!CubemapConverter.IsSupportedFormat(m_Cubemap.m_TextureFormat))
+            {
+                Logger.Warning($"Cubemap \"{m_Cubemap.m_Name}\" uses {m_Cubemap.m_TextureFormat}, which can't be converted to EXR yet; not exporting it with the model");
+                return false;
+            }
+
+            using (var stream = new System.IO.MemoryStream())
+            {
+                if (!CubemapConverter.TryExportEquirectExr(m_Cubemap, stream, out var error))
+                {
+                    Logger.Warning($"Cubemap \"{m_Cubemap.m_Name}\" could not be converted to EXR ({error}); not exporting it with the model");
+                    return false;
+                }
+                TextureList.Add(new ImportedTexture(stream, name));
+            }
+            return true;
         }
 
         private void ConvertAnimations()
